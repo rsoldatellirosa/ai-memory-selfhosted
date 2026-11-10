@@ -1,0 +1,22 @@
+# Segredos — nunca commitar
+*.env
+token
+token.env
+*.key
+*.pem
+id_*
+*.secret
+
+# Dados e digests gerados
+/var/
+digests/
+*.db
+*.sqlite
+
+# Lixo de SO / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

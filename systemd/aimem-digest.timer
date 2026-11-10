@@ -1,0 +1,15 @@
+# /etc/systemd/system/aimem-digest.timer
+#
+# Dispara o digest uma vez por dia. Ativar com:
+#   systemctl enable --now aimem-digest.timer
+
+[Unit]
+Description=Run ai-memory digest daily
+
+[Timer]
+OnCalendar=*-*-* 06:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

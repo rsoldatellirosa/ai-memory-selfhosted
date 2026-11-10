@@ -1,0 +1,30 @@
+# /etc/systemd/system/aimem-digest.service
+#
+# Servico oneshot disparado pelo timer: gera o digest diario cruzando projetos.
+# Nao e "enabled" sozinho — quem agenda e o aimem-digest.timer.
+
+[Unit]
+Description=ai-memory daily cross-project digest
+After=ai-memory.service
+Requires=ai-memory.service
+
+[Service]
+Type=oneshot
+
+User=aimem
+Group=aimem
+
+# Token para falar com o servico local via tailnet.
+EnvironmentFile=/etc/ai-memory/token.env
+Environment=AIMEM_URL=http://<TAILNET_IP>:<SERVICE_PORT>
+
+ExecStart=/opt/ai-memory/scripts/aimem-digest.sh
+
+# Sandbox igual ao servico principal.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/ai-memory

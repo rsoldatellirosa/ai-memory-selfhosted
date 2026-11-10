@@ -1,0 +1,60 @@
+# /etc/systemd/system/ai-memory.service
+#
+# Unit endurecida para o servidor ai-memory em uma VPS tailnet-only.
+# Valores entre <...> sao placeholders: troque pelos seus. Nenhum segredo
+# fica nesta unit — o token e lido de um arquivo fora do controle de versao.
+
+[Unit]
+Description=ai-memory server (tailnet-only)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+Requires=tailscaled.service
+
+[Service]
+Type=simple
+
+# Usuario dedicado sem privilegio (criar com: adduser --system --group aimem)
+User=aimem
+Group=aimem
+
+WorkingDirectory=/opt/ai-memory
+
+# Escuta SO na interface da tailnet — nunca em 0.0.0.0.
+# <TAILNET_IP> = IP 100.x.x.x que o Tailscale deu a esta VPS.
+Environment=AIMEM_BIND=<TAILNET_IP>
+Environment=AIMEM_PORT=<SERVICE_PORT>
+Environment=AIMEM_ALLOWED_HOSTS=<TAILNET_FQDN>
+
+# Token bearer lido de arquivo protegido (modo 600, dono aimem), fora do repo.
+# EnvironmentFile mantem o segredo fora da unit e fora do git.
+EnvironmentFile=/etc/ai-memory/token.env
+
+ExecStart=/opt/ai-memory/ai-memory serve
+Restart=on-failure
+RestartSec=5
+
+# ---- Sandbox ----
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Capabilities: nenhuma.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# Unico caminho com escrita permitida: o data-dir.
+ReadWritePaths=/var/lib/ai-memory
+
+[Install]
+WantedBy=multi-user.target
