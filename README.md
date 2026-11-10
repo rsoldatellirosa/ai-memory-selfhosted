@@ -1,35 +1,62 @@
-# ai-memory self-hosted (caso real sanitizado)
+# ai-memory self-hosted
 
-Caso de migração de um servidor de **memória de longo prazo compartilhada entre
-agentes de IA** (Claude Code + Codex), que rodava localmente no Windows, para
-uma **VPS Linux endurecida e acessível apenas por rede privada Tailscale**.
+Minha instância self-hosted do [`ai-memory`](https://github.com/akitaonrails/ai-memory)
+(projeto open source de akitaonrails): **memória de longo prazo compartilhada
+entre meus agentes de IA** (Claude Code + Codex), rodando numa **VPS Linux
+acessível apenas pela rede privada Tailscale**.
 
-> **Aviso:** repositório de referência. Todos os valores sensíveis (IP,
-> hostname/FQDN, token, chave SSH) são **placeholders**. Nada aqui contém dado
-> real de produção.
+Este repositório é um **caso de uso + referência de setup**: como eu organizo a
+memória, como os agentes consomem, e como eu hospedo o servidor de forma
+endurecida. Não é um produto — é a minha configuração, documentada.
+
+> **Aviso:** valores sensíveis (IP, hostname/FQDN, token, chave SSH) são
+> **placeholders**. Nada aqui contém dado real de produção.
 
 ---
 
-## O problema
+## O que é
 
-A stack usa o projeto open source [`ai-memory`](https://github.com/akitaonrails/ai-memory)
-(de akitaonrails) como memória persistente cruzando vários projetos. Os agentes
-leem e escrevem notas, decisões e gotchas via MCP.
+`ai-memory` dá aos agentes uma **memória persistente que cruza vários projetos**.
+Em vez de cada sessão começar do zero, os agentes:
 
-O servidor rodava **local no Windows** como binário nativo. A partir de um
-Windows Update, o **Smart App Control** passou a bloquear o executável por não
-ter assinatura de código reconhecida. Desligar o Smart App Control é uma
-operação **irreversível** (só volta com reinstalação limpa do Windows), então
-não era opção. Resultado: o servidor local morreu e a memória ficou
-indisponível para os agentes.
+- **leem** histórico, decisões, convenções e *gotchas* de cada projeto;
+- **escrevem** páginas duráveis de conhecimento (wiki por projeto);
+- fazem *recall* por busca full-text + entidades;
+- passam contexto entre si via *handoff*.
 
-## A solução
+Tudo por **MCP**, então o mesmo acervo de memória é compartilhado entre clientes
+diferentes.
 
-Migrar o servidor para uma **VPS Linux (Ubuntu)**, exposta **somente** pela
-tailnet (rede privada Tailscale). Nenhuma porta pública aberta. O binário roda
-em Linux, onde não existe o gate de assinatura do Smart App Control.
+## Por que eu uso
 
-## Arquitetura
+Trabalho com **dois agentes** no mesmo conjunto de projetos — Claude Code e
+Codex. Sem memória compartilhada, cada um reaprende as mesmas coisas a cada
+sessão e as decisões se perdem. Com um servidor `ai-memory` único:
+
+- os dois agentes leem e escrevem o **mesmo** acervo;
+- cada projeto tem um *overview* curado (stack, infra, estado, decisões);
+- o que descobri numa sessão continua disponível na próxima, em qualquer agente.
+
+## Como eu uso (fluxo)
+
+- **Clientes:** Claude Code e Codex apontam o MCP para o servidor.
+- **Leitura:** automática — os agentes consultam a memória ao longo da sessão.
+- **Escrita durável:** **manual**, só quando eu peço explicitamente para
+  lembrar algo (evita ruído de captura automática).
+- **Organização:** uma página de *overview* por projeto + páginas de regras,
+  decisões e gotchas.
+- **Digest diário:** um timer `systemd` gera um resumo cruzando os projetos
+  (ver `scripts/aimem-digest.sh` + `systemd/aimem-digest.*`).
+
+## Onde roda
+
+Servidor numa **VPS Ubuntu**, exposto **somente** pela tailnet (Tailscale /
+WireGuard). Nenhuma porta pública.
+
+> Antes rodava local na minha estação; migrei para a VPS por previsibilidade —
+> um serviço que precisa ficar de pé fica mais estável num Linux endurecido e
+> dedicado do que preso ao ciclo de atualização e aos gates de assinatura do
+> desktop.
 
 ```
 ┌───────────────────────┐         tailnet (WireGuard)        ┌────────────────────────┐
@@ -39,17 +66,25 @@ em Linux, onde não existe o gate de assinatura do Smart App Control.
 └───────────────────────┘        só interface tailscale0     └────────────────────────┘
 ```
 
-- **Transporte:** Tailscale (WireGuard). O serviço escuta só na interface
-  `tailscale0`; a internet pública não enxerga a porta.
+- **Transporte:** Tailscale. O serviço escuta só em `tailscale0`; a internet
+  pública não enxerga a porta.
 - **Processo:** unit `systemd` como usuário dedicado sem privilégio, com sandbox
   (ver `systemd/ai-memory.service`).
-- **Dados:** diretório de dados próprio, único caminho com escrita permitida.
-- **Digest diário:** timer `systemd` gera um resumo cruzando os projetos
-  (ver `systemd/aimem-digest.*` + `scripts/aimem-digest.sh`).
+- **Dados:** diretório próprio, único caminho com escrita permitida.
+
+## Setup
+
+O passo a passo do servidor está em [`docs/hardening.md`](docs/hardening.md)
+(rede, acesso, patches, sandbox do processo, token, subir o serviço). Os
+arquivos de apoio:
+
+- `systemd/ai-memory.service` — unit endurecida do servidor.
+- `systemd/aimem-digest.service` + `.timer` — rotina do digest diário.
+- `scripts/aimem-digest.sh` — script do digest.
 
 ## Segurança (endurecimento)
 
-Detalhe completo em [`docs/hardening.md`](docs/hardening.md). Resumo das camadas:
+Detalhe em [`docs/hardening.md`](docs/hardening.md). Camadas:
 
 | Camada | Medida |
 |--------|--------|
@@ -59,53 +94,41 @@ Detalhe completo em [`docs/hardening.md`](docs/hardening.md). Resumo das camadas
 | Processo | `systemd` como usuário sem privilégio: `NoNewPrivileges`, `ProtectSystem=strict`, `CapabilityBoundingSet` vazio, `ReadWritePaths` só o data-dir |
 | App | token bearer em toda rota (exceto healthcheck); `allowed_hosts` contra DNS-rebinding |
 
-Segredos (token, caminho de chave) nunca ficam no repositório nem na unit: a
-unit lê o token de um arquivo fora do controle de versão via
-`$(cat /caminho/do/token)` / `EnvironmentFile`.
+Segredos (token, caminho de chave) nunca ficam no repositório nem na unit: o
+token é lido de um arquivo fora do controle de versão (`EnvironmentFile`).
 
-## Modo de operação
-
-- **Leitura:** ligada e automática (os agentes consultam a memória via MCP).
-- **Escrita:** **manual** via MCP. A captura automática por hooks está
-  **desligada** — os hooks locais chamavam o binário que o Smart App Control
-  bloqueava, então foram desativados para não quebrar as sessões. Escrita
-  durável acontece só quando o usuário pede explicitamente.
-- **Digest:** rotina diária (timer `systemd`) cruza os projetos e grava um
-  resumo.
+Separar **transporte** (Tailscale), **processo** (sandbox systemd) e
+**aplicação** (token + `allowed_hosts`) deixa cada camada simples e auditável,
+com superfície de ataque pública igual a zero.
 
 ## Recuperação
 
 Se a tailnet cair e o SSH via tailnet ficar inacessível, o acesso de emergência
-é o **console VNC do painel da VPS** (fora da rede Tailscale). Por isso o
-console do provedor continua sendo o caminho de resgate — nunca abrir SSH na
-interface pública como "plano B".
-
-## Lição
-
-- Binário nativo sem assinatura em Windows com Smart App Control = risco de
-  parada súbita e **irreversível**. Para serviço que precisa ficar de pé, Linux
-  endurecido é mais previsível.
-- Tailnet-only (zero porta pública) + sandbox `systemd` dá uma superfície de
-  ataque mínima com pouquíssima configuração.
-- Separar **transporte** (Tailscale), **processo** (sandbox systemd) e
-  **aplicação** (token + allowed_hosts) deixa cada camada simples e auditável.
+é o **console VNC do painel da VPS** (fora do Tailscale). Por isso nunca abro SSH
+na interface pública como "plano B".
 
 ---
 
 ## EN (short)
 
-Shared long-term memory for AI agents (Claude Code + Codex) using the open
-source `ai-memory` project. It ran locally on Windows until Smart App Control
-started blocking the unsigned binary (irreversible to disable). Migrated to a
-hardened Ubuntu VPS reachable **only** over a Tailscale tailnet — no public
-ports. Hardening: `ufw` default-deny, SSH and the service port bound to
-`tailscale0` only, `fail2ban`, `unattended-upgrades`, key-only SSH, a sandboxed
-`systemd` unit (unprivileged user, `NoNewPrivileges`, `ProtectSystem=strict`,
-empty `CapabilityBoundingSet`, `ReadWritePaths` = data dir only), bearer token
-on every route but healthcheck, and `allowed_hosts` against DNS rebinding.
-Operation is read + manual write via MCP (auto-capture off). A daily systemd
-timer builds a cross-project digest. Recovery if the tailnet is down = the VPS
-panel's VNC console. All sensitive values in this repo are placeholders.
+My self-hosted instance of the open source `ai-memory` project: **shared
+long-term memory for my AI agents** (Claude Code + Codex), running on a Linux
+VPS reachable **only** over a Tailscale tailnet. A use case + setup reference,
+not a product.
+
+Why: I run two agents over the same set of projects; a single shared memory
+server means both read and write the same store, each project keeps a curated
+overview, and what I learn in one session survives into the next, in any agent.
+Reads are automatic; durable writes are manual via MCP; a daily `systemd` timer
+builds a cross-project digest.
+
+Hardening: `ufw` default-deny, SSH and the service port bound to `tailscale0`
+only, `fail2ban`, `unattended-upgrades`, key-only SSH, a sandboxed `systemd`
+unit (unprivileged user, `NoNewPrivileges`, `ProtectSystem=strict`, empty
+`CapabilityBoundingSet`, `ReadWritePaths` = data dir only), bearer token on
+every route but healthcheck, and `allowed_hosts` against DNS rebinding. Public
+attack surface is zero. Recovery if the tailnet is down = the VPS panel's VNC
+console. All sensitive values here are placeholders.
 
 ## Licença
 
