@@ -2,7 +2,7 @@
 #
 # Unit endurecida para o servidor ai-memory em uma VPS tailnet-only.
 # Valores entre <...> sao placeholders: troque pelos seus. Nenhum segredo
-# fica nesta unit — o token e lido de um arquivo fora do controle de versao.
+# fica nesta unit: o token e lido de um arquivo fora do controle de versao.
 
 [Unit]
 Description=ai-memory server (tailnet-only)
@@ -19,7 +19,7 @@ Group=aimem
 
 WorkingDirectory=/opt/ai-memory
 
-# Escuta SO na interface da tailnet — nunca em 0.0.0.0.
+# Escuta SO na interface da tailnet, nunca em 0.0.0.0.
 # <TAILNET_IP> = IP 100.x.x.x que o Tailscale deu a esta VPS.
 Environment=AIMEM_BIND=<TAILNET_IP>
 Environment=AIMEM_PORT=<SERVICE_PORT>

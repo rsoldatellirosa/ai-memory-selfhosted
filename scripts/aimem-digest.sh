@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# aimem-digest.sh — gera o digest diario cruzando projetos.
+# aimem-digest.sh: gera o digest diario cruzando projetos.
 #
 # Chamado pelo aimem-digest.service (timer systemd). Fala com o servico local
 # pela tailnet usando token bearer lido de arquivo protegido.

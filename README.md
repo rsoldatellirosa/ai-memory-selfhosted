@@ -7,7 +7,7 @@ acessível apenas pela rede privada Tailscale**.
 
 Este repositório é um **caso de uso + referência de setup**: como eu organizo a
 memória, como os agentes consomem, e como eu hospedo o servidor de forma
-endurecida. Não é um produto — é a minha configuração, documentada.
+endurecida. É a minha configuração real, documentada.
 
 > **Aviso:** valores sensíveis (IP, hostname/FQDN, token, chave SSH) são
 > **placeholders**. Nada aqui contém dado real de produção.
@@ -29,7 +29,7 @@ diferentes.
 
 ## Por que eu uso
 
-Trabalho com **dois agentes** no mesmo conjunto de projetos — Claude Code e
+Trabalho com **dois agentes** no mesmo conjunto de projetos: Claude Code e
 Codex. Sem memória compartilhada, cada um reaprende as mesmas coisas a cada
 sessão e as decisões se perdem. Com um servidor `ai-memory` único:
 
@@ -40,7 +40,7 @@ sessão e as decisões se perdem. Com um servidor `ai-memory` único:
 ## Como eu uso (fluxo)
 
 - **Clientes:** Claude Code e Codex apontam o MCP para o servidor.
-- **Leitura:** automática — os agentes consultam a memória ao longo da sessão.
+- **Leitura:** automática, os agentes consultam a memória ao longo da sessão.
 - **Escrita durável:** **manual**, só quando eu peço explicitamente para
   lembrar algo (evita ruído de captura automática).
 - **Organização:** uma página de *overview* por projeto + páginas de regras,
@@ -53,7 +53,7 @@ sessão e as decisões se perdem. Com um servidor `ai-memory` único:
 Servidor numa **VPS Ubuntu**, exposto **somente** pela tailnet (Tailscale /
 WireGuard). Nenhuma porta pública.
 
-> Antes rodava local na minha estação; migrei para a VPS por previsibilidade —
+> Antes rodava local na minha estação; migrei para a VPS por previsibilidade:
 > um serviço que precisa ficar de pé fica mais estável num Linux endurecido e
 > dedicado do que preso ao ciclo de atualização e aos gates de assinatura do
 > desktop.
@@ -78,9 +78,9 @@ O passo a passo do servidor está em [`docs/hardening.md`](docs/hardening.md)
 (rede, acesso, patches, sandbox do processo, token, subir o serviço). Os
 arquivos de apoio:
 
-- `systemd/ai-memory.service` — unit endurecida do servidor.
-- `systemd/aimem-digest.service` + `.timer` — rotina do digest diário.
-- `scripts/aimem-digest.sh` — script do digest.
+- `systemd/ai-memory.service`: unit endurecida do servidor.
+- `systemd/aimem-digest.service` + `.timer`: rotina do digest diário.
+- `scripts/aimem-digest.sh`: script do digest.
 
 ## Segurança (endurecimento)
 
@@ -132,4 +132,4 @@ console. All sensitive values here are placeholders.
 
 ## Licença
 
-MIT — ver [`LICENSE`](LICENSE).
+MIT, ver [`LICENSE`](LICENSE).

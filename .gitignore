@@ -1,4 +1,4 @@
-# Segredos — nunca commitar
+# Segredos: nunca commitar
 *.env
 token
 token.env

@@ -1,7 +1,7 @@
 # /etc/systemd/system/aimem-digest.service
 #
 # Servico oneshot disparado pelo timer: gera o digest diario cruzando projetos.
-# Nao e "enabled" sozinho — quem agenda e o aimem-digest.timer.
+# Nao e "enabled" sozinho: quem agenda e o aimem-digest.timer.
 
 [Unit]
 Description=ai-memory daily cross-project digest
