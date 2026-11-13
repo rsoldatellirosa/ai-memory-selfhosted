@@ -47,6 +47,9 @@ sessão e as decisões se perdem. Com um servidor `ai-memory` único:
   decisões e gotchas.
 - **Digest diário:** um timer `systemd` gera um resumo cruzando os projetos
   (ver `scripts/aimem-digest.sh` + `systemd/aimem-digest.*`).
+- **Atualização das visões gerais:** uma tarefa agendada na estação de trabalho
+  roda a cada 3 dias, relê as fontes de cada projeto (git, notas, diário) e
+  reescreve só as visões gerais que mudaram, sem chaves nem dados sensíveis.
 
 ## Onde roda
 
@@ -107,6 +110,19 @@ Se a tailnet cair e o SSH via tailnet ficar inacessível, o acesso de emergênci
 é o **console VNC do painel da VPS** (fora do Tailscale). Por isso nunca abro SSH
 na interface pública como "plano B".
 
+## Linha do tempo
+
+- **21/10/2026:** instalação local no Windows, com Claude Code e Codex conectados.
+- **22/10/2026:** a memória de cada projeto passou a ser levada para o ai-memory.
+- **09/11/2026:** o Smart App Control do Windows bloqueou o executável, que não
+  tem assinatura digital, e o servidor local parou.
+- **10/11/2026:** migração para a VPS, acessível só pela tailnet e com o
+  endurecimento descrito acima.
+- **12/11/2026:** tarefa que mantém a visão geral de cada projeto em dia.
+
+A história completa, com prints, está neste post no LinkedIn:
+https://www.linkedin.com/feed/update/urn:li:activity:7526974257197715456/
+
 ---
 
 ## EN (short)
@@ -129,6 +145,9 @@ unit (unprivileged user, `NoNewPrivileges`, `ProtectSystem=strict`, empty
 every route but healthcheck, and `allowed_hosts` against DNS rebinding. Public
 attack surface is zero. Recovery if the tailnet is down = the VPS panel's VNC
 console. All sensitive values here are placeholders.
+
+The full story (in Portuguese, with screenshots) is in this LinkedIn post:
+https://www.linkedin.com/feed/update/urn:li:activity:7526974257197715456/
 
 ## Licença
 
